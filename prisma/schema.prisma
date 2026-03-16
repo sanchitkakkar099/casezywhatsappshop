@@ -1,0 +1,346 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXPIRED
+  REFUNDED
+}
+
+enum OrderStatus {
+  CHECKOUT_CREATED
+  PAYMENT_LINK_SENT
+  PAYMENT_PENDING
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  SHOPIFY_ORDER_CREATED
+  SHOPIFY_SYNC_FAILED
+  FULFILLMENT_PENDING
+  TRACKING_ADDED
+  SHIPPED
+  CUSTOMER_NOTIFIED
+}
+
+enum SyncJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ============================================================
+// CORE TABLES
+// ============================================================
+
+model AdminUser {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String
+  hashedPassword String   @map("hashed_password")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("admin_users")
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  fullName  String   @map("full_name")
+  email     String
+  phone     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  checkouts        Checkout[]
+  campaignMessages CampaignMessage[]
+
+  @@index([email])
+  @@map("customers")
+}
+
+model Product {
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  description      String?
+  imageUrl         String?  @map("image_url")
+  price            Decimal  @db.Decimal(10, 2)
+  currency         String   @default("INR")
+  active           Boolean  @default(true)
+  sku              String?
+  shopifyProductId String?  @map("shopify_product_id")
+  shopifyVariantId String?  @map("shopify_variant_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  checkouts Checkout[]
+
+  @@map("products")
+}
+
+model Checkout {
+  id                     String        @id @default(cuid())
+  checkoutId             String        @unique @map("checkout_id")
+  internalOrderReference String        @unique @map("internal_order_ref")
+  customerId             String        @map("customer_id")
+  productId              String        @map("product_id")
+  quantity               Int           @default(1)
+  unitPrice              Decimal       @db.Decimal(10, 2) @map("unit_price")
+  totalAmount            Decimal       @db.Decimal(10, 2) @map("total_amount")
+  currency               String        @default("INR")
+  source                 String        @default("whatsapp")
+  whatsappContactId      String?       @map("whatsapp_contact_id")
+
+  // Addresses snapshot at order time
+  shippingAddress        Json          @map("shipping_address")
+  billingAddress         Json          @map("billing_address")
+
+  // Payment
+  paymentStatus          PaymentStatus @default(PENDING) @map("payment_status")
+  cashfreeOrderId        String?       @unique @map("cashfree_order_id")
+  cashfreePaymentLinkId  String?       @map("cashfree_payment_link_id")
+  cashfreePaymentLinkUrl String?       @map("cashfree_payment_link_url")
+  cashfreePaymentId      String?       @map("cashfree_payment_id")
+  paidAt                 DateTime?     @map("paid_at")
+
+  // Order status
+  orderStatus            OrderStatus   @default(CHECKOUT_CREATED) @map("order_status")
+
+  // Shopify
+  shopifyOrderId         String?       @unique @map("shopify_order_id")
+  shopifyOrderNumber     String?       @map("shopify_order_number")
+
+  // Fulfillment
+  trackingNumber         String?       @map("tracking_number")
+  courierName            String?       @map("courier_name")
+  trackingUrl            String?       @map("tracking_url")
+
+  // Timestamps
+  createdAt              DateTime      @default(now()) @map("created_at")
+  updatedAt              DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  customer               Customer      @relation(fields: [customerId], references: [id])
+  product                Product       @relation(fields: [productId], references: [id])
+  syncJobs               ShopifySyncJob[]
+  abandonedCartReminders AbandonedCartReminder[]
+
+  @@index([paymentStatus])
+  @@index([orderStatus])
+  @@index([whatsappContactId])
+  @@index([createdAt])
+  @@map("checkouts")
+}
+
+// ============================================================
+// SHOPIFY SYNC JOB QUEUE
+// ============================================================
+
+model ShopifySyncJob {
+  id          String        @id @default(cuid())
+  checkoutId  String        @map("checkout_id")
+  status      SyncJobStatus @default(PENDING)
+  attempts    Int           @default(0)
+  lastError   String?       @map("last_error")
+  nextRetryAt DateTime?     @map("next_retry_at")
+  completedAt DateTime?     @map("completed_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  checkout    Checkout      @relation(fields: [checkoutId], references: [id])
+
+  @@index([status, nextRetryAt])
+  @@map("shopify_sync_jobs")
+}
+
+// ============================================================
+// LOG TABLES
+// ============================================================
+
+model WhatsappInboundLog {
+  id        String   @id @default(cuid())
+  payload   Json
+  source    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("whatsapp_inbound_logs")
+}
+
+model WhatsappOutboundLog {
+  id          String   @id @default(cuid())
+  recipient   String
+  messageType String   @map("message_type")
+  payload     Json
+  status      String?
+  error       String?
+  checkoutId  String?  @map("checkout_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([checkoutId])
+  @@index([createdAt])
+  @@map("whatsapp_outbound_logs")
+}
+
+model CashfreeWebhookLog {
+  id              String   @id @default(cuid())
+  eventType       String   @map("event_type")
+  cashfreeOrderId String?  @map("cashfree_order_id")
+  payload         Json
+  signatureValid  Boolean  @map("signature_valid")
+  processed       Boolean  @default(false)
+  idempotencyKey  String?  @unique @map("idempotency_key")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([cashfreeOrderId])
+  @@index([createdAt])
+  @@map("cashfree_webhook_logs")
+}
+
+model ShopifyWebhookLog {
+  id             String   @id @default(cuid())
+  topic          String
+  shopifyOrderId String?  @map("shopify_order_id")
+  payload        Json
+  hmacValid      Boolean  @map("hmac_valid")
+  processed      Boolean  @default(false)
+  idempotencyKey String?  @unique @map("idempotency_key")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([shopifyOrderId])
+  @@index([createdAt])
+  @@map("shopify_webhook_logs")
+}
+
+model ShopifySyncLog {
+  id             String   @id @default(cuid())
+  checkoutId     String   @map("checkout_id")
+  action         String
+  success        Boolean
+  shopifyOrderId String?  @map("shopify_order_id")
+  request        Json?
+  response       Json?
+  error          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([checkoutId])
+  @@index([createdAt])
+  @@map("shopify_sync_logs")
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+
+model IntegrationSetting {
+  id             String   @id @default(cuid())
+  integration    String   // "chatmint" | "cashfree" | "shopify"
+  key            String   // e.g. "apiKey", "appId", "storeDomain"
+  encryptedValue String   @map("encrypted_value")
+  isSecret       Boolean  @default(true) @map("is_secret")
+  updatedBy      String   @map("updated_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([integration, key])
+  @@map("integration_settings")
+}
+
+// ============================================================
+// MARKETING
+// ============================================================
+
+enum CampaignStatus {
+  DRAFT
+  SENDING
+  COMPLETED
+  FAILED
+}
+
+model MarketingCampaign {
+  id            String         @id @default(cuid())
+  name          String
+  templateName  String         @map("template_name")
+  templateParams Json?         @map("template_params") // default param values
+  audience      String         @default("all") // "all", "paid", "unpaid", "repeat"
+  totalRecipients Int          @default(0) @map("total_recipients")
+  sentCount     Int            @default(0) @map("sent_count")
+  failedCount   Int            @default(0) @map("failed_count")
+  status        CampaignStatus @default(DRAFT)
+  scheduledAt   DateTime?      @map("scheduled_at")
+  startedAt     DateTime?      @map("started_at")
+  completedAt   DateTime?      @map("completed_at")
+  createdBy     String         @map("created_by")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  messages      CampaignMessage[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("marketing_campaigns")
+}
+
+model CampaignMessage {
+  id          String   @id @default(cuid())
+  campaignId  String   @map("campaign_id")
+  customerId  String   @map("customer_id")
+  phone       String
+  status      String   @default("pending") // "pending", "sent", "failed"
+  messageId   String?  @map("message_id")
+  error       String?
+  sentAt      DateTime? @map("sent_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  campaign    MarketingCampaign @relation(fields: [campaignId], references: [id])
+  customer    Customer @relation(fields: [customerId], references: [id])
+
+  @@index([campaignId])
+  @@index([customerId])
+  @@map("campaign_messages")
+}
+
+model AbandonedCartReminder {
+  id          String   @id @default(cuid())
+  checkoutId  String   @map("checkout_id")
+  phone       String
+  reminderNumber Int   @default(1) @map("reminder_number") // 1st, 2nd, 3rd reminder
+  status      String   @default("pending") // "pending", "sent", "failed"
+  messageId   String?  @map("message_id")
+  error       String?
+  sentAt      DateTime? @map("sent_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  checkout    Checkout @relation(fields: [checkoutId], references: [id])
+
+  @@unique([checkoutId, reminderNumber])
+  @@index([status])
+  @@index([createdAt])
+  @@map("abandoned_cart_reminders")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     String
+  action    String
+  entity    String
+  entityId  String   @map("entity_id")
+  details   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
