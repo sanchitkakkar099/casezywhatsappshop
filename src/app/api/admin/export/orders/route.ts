@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { errorResponse, UnauthorizedError } from "@/lib/errors";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/admin/export/orders
  *

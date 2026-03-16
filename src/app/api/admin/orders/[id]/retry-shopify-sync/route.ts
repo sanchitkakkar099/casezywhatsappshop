@@ -5,6 +5,8 @@ import { errorResponse, UnauthorizedError, NotFoundError } from "@/lib/errors";
 import { retryShopifySync } from "@/services/shopify-sync.service";
 import { loggerService } from "@/services/logger.service";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/admin/orders/:id/retry-shopify-sync
  *

@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { errorResponse, UnauthorizedError } from "@/lib/errors";
 
+export const dynamic = 'force-dynamic';
+
 function startOfDay(date: Date): Date {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);

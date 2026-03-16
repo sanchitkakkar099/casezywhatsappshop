@@ -8,6 +8,8 @@ import { DEFAULT_TEMPLATES } from "@/lib/integration-keys";
 import { loggerService } from "@/services/logger.service";
 import { errorResponse, UnauthorizedError, NotFoundError } from "@/lib/errors";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/admin/marketing/campaigns/[id]/send
  *

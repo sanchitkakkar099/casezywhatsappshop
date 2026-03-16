@@ -5,6 +5,8 @@ import { config } from "@/lib/config";
 import { errorResponse, UnauthorizedError } from "@/lib/errors";
 import { loggerService } from "@/services/logger.service";
 
+export const dynamic = 'force-dynamic';
+
 interface ShopifyProduct {
   id: number;
   title: string;
@@ -37,11 +39,11 @@ export async function POST() {
     let hasMore = true;
 
     while (hasMore) {
-      const url = pageInfo
+      const fetchUrl: string = pageInfo
         ? `${config.shopify.baseUrl}/products.json?limit=250&page_info=${pageInfo}`
         : `${config.shopify.baseUrl}/products.json?limit=250&status=active`;
 
-      const response = await fetch(url, {
+      const response: Response = await fetch(fetchUrl, {
         headers: {
           "Content-Type": "application/json",
           "X-Shopify-Access-Token": config.shopify.accessToken,
@@ -49,7 +51,7 @@ export async function POST() {
       });
 
       if (!response.ok) {
-        const err = await response.text();
+        const err: string = await response.text();
         return Response.json(
           { error: `Shopify API error: ${response.status} — ${err}` },
           { status: 502 }
@@ -60,9 +62,9 @@ export async function POST() {
       allProducts.push(...(data.products ?? []));
 
       // Check for next page via Link header
-      const linkHeader = response.headers.get("link");
+      const linkHeader: string | null = response.headers.get("link");
       if (linkHeader && linkHeader.includes('rel="next"')) {
-        const match = linkHeader.match(/page_info=([^>&]*)/);
+        const match: RegExpMatchArray | null = linkHeader.match(/page_info=([^>&]*)/);
         pageInfo = match ? match[1] : null;
         hasMore = !!pageInfo;
       } else {

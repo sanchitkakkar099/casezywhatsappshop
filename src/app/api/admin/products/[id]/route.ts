@@ -6,6 +6,8 @@ import { errorResponse, UnauthorizedError, NotFoundError } from "@/lib/errors";
 import { updateProductSchema } from "@/lib/validation/product";
 import { loggerService } from "@/services/logger.service";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/admin/products/:id
  */

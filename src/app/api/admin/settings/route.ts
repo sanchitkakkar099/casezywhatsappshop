@@ -6,6 +6,8 @@ import { encrypt, decrypt, maskValue } from "@/lib/encryption";
 import { INTEGRATION_KEYS, ENV_MAP } from "@/lib/integration-keys";
 import { errorResponse, UnauthorizedError } from "@/lib/errors";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/admin/settings
  *
