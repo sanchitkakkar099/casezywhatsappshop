@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { WebhookLogsTable } from "@/components/admin/WebhookLogsTable";
+import { TableSkeleton } from "@/components/shared/Toast";
 
 export default function LogsPage() {
   const [cashfreeLogs, setCashfreeLogs] = useState([]);
@@ -29,8 +30,8 @@ export default function LogsPage() {
       </div>
 
       {loading ? (
-        <div className="flex h-32 items-center justify-center text-gray-500">
-          Loading logs...
+        <div className="space-y-4">
+          <TableSkeleton rows={5} cols={5} />
         </div>
       ) : (
         <WebhookLogsTable

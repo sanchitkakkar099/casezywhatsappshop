@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { OrdersTable } from "@/components/admin/OrdersTable";
 import { Pagination } from "@/components/shared/Pagination";
 import { ExportButton } from "@/components/shared/ExportButton";
+import { TableSkeleton } from "@/components/shared/Toast";
 
 const PAYMENT_STATUSES = ["", "PENDING", "SUCCESS", "FAILED", "EXPIRED", "REFUNDED"];
 const ORDER_STATUSES = [
@@ -133,9 +134,7 @@ function OrdersPageInner() {
       </div>
 
       {loading ? (
-        <div className="flex h-32 items-center justify-center text-gray-400 text-sm">
-          Loading...
-        </div>
+        <TableSkeleton rows={5} cols={5} />
       ) : (
         <>
           <OrdersTable orders={orders} />

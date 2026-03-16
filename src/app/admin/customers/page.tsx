@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Pagination } from "@/components/shared/Pagination";
+import { TableSkeleton } from "@/components/shared/Toast";
 
 interface Customer {
   id: string;
@@ -126,9 +127,7 @@ function CustomersPageInner() {
 
       {/* Table */}
       {loading ? (
-        <div className="flex h-32 items-center justify-center text-gray-400 text-sm">
-          Loading customers...
-        </div>
+        <TableSkeleton rows={5} cols={5} />
       ) : customers.length === 0 ? (
         <div className="card p-10 text-center text-sm text-gray-400">
           No customers found. Customers are automatically created when they

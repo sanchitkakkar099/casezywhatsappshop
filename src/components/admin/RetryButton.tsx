@@ -2,17 +2,18 @@
 
 import { useState } from "react";
 import { friendlyError, FRIENDLY_STATUS } from "@/lib/friendly-errors";
+import { Toast, Spinner } from "@/components/shared/Toast";
 
 export function RetryButton({ checkoutId }: { checkoutId: string }) {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{
-    success: boolean;
+  const [toast, setToast] = useState<{
+    type: "success" | "error";
     message: string;
   } | null>(null);
 
   const handleRetry = async () => {
     setLoading(true);
-    setResult(null);
+    setToast(null);
 
     try {
       const response = await fetch(
@@ -24,21 +25,21 @@ export function RetryButton({ checkoutId }: { checkoutId: string }) {
 
       if (response.ok) {
         const status = data.order?.orderStatus;
-        setResult({
-          success: true,
+        setToast({
+          type: "success",
           message:
             FRIENDLY_STATUS[status] ??
             "Order synced successfully to Shopify!",
         });
         setTimeout(() => window.location.reload(), 1500);
       } else {
-        setResult({
-          success: false,
+        setToast({
+          type: "error",
           message: friendlyError(data.error),
         });
       }
     } catch (err) {
-      setResult({ success: false, message: friendlyError(err) });
+      setToast({ type: "error", message: friendlyError(err) });
     } finally {
       setLoading(false);
     }
@@ -46,6 +47,13 @@ export function RetryButton({ checkoutId }: { checkoutId: string }) {
 
   return (
     <div>
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
       <button
         onClick={handleRetry}
         disabled={loading}
@@ -53,42 +61,13 @@ export function RetryButton({ checkoutId }: { checkoutId: string }) {
       >
         {loading ? (
           <span className="flex items-center gap-2">
-            <svg
-              className="h-4 w-4 animate-spin"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
+            <Spinner />
             Retrying...
           </span>
         ) : (
           "Retry Shopify Sync"
         )}
       </button>
-      {result && (
-        <div
-          className={`mt-3 border-l-4 px-4 py-2.5 text-sm ${
-            result.success
-              ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-              : "border-red-500 bg-red-50 text-red-700"
-          }`}
-        >
-          {result.message}
-        </div>
-      )}
     </div>
   );
 }

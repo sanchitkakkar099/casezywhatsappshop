@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { OrderDetail } from "@/components/admin/OrderDetail";
+import { DetailSkeleton } from "@/components/shared/Toast";
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -25,8 +26,11 @@ export default function OrderDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center text-gray-500">
-        Loading order...
+      <div>
+        <div className="mb-6">
+          <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+        </div>
+        <DetailSkeleton />
       </div>
     );
   }
@@ -34,11 +38,12 @@ export default function OrderDetailPage() {
   if (error || !data) {
     return (
       <div className="space-y-4">
-        <div className="rounded-lg bg-red-50 p-4 text-red-700">
-          {error ?? "Failed to load order"}
+        <div className="border-l-4 border-red-500 bg-red-50 px-4 py-3">
+          <p className="text-sm font-medium text-red-800">Could not load order</p>
+          <p className="mt-0.5 text-sm text-red-600">{error ?? "Failed to load order"}</p>
         </div>
-        <Link href="/admin/orders" className="text-green-600 hover:underline">
-          Back to orders
+        <Link href="/admin/orders" className="text-sm text-brand-600 hover:underline">
+          &larr; Back to orders
         </Link>
       </div>
     );
@@ -49,7 +54,7 @@ export default function OrderDetailPage() {
       <div className="mb-6">
         <Link
           href="/admin/orders"
-          className="text-sm text-green-600 hover:underline"
+          className="text-sm text-brand-600 hover:underline"
         >
           &larr; Back to Orders
         </Link>

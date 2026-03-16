@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { Toast, Spinner } from "@/components/shared/Toast";
 import {
   INTEGRATION_KEYS,
   INTEGRATION_LABELS,
@@ -64,15 +65,11 @@ export default function SettingsPage() {
 
       {/* Toast */}
       {toast && (
-        <div
-          className={`animate-slide-in-right border-l-4 px-4 py-3 text-sm ${
-            toast.type === "success"
-              ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-              : "border-red-500 bg-red-50 text-red-700"
-          }`}
-        >
-          {toast.message}
-        </div>
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
       )}
 
       {/* Tabs */}
@@ -327,25 +324,7 @@ function IntegrationForm({
           >
             {saving ? (
               <span className="flex items-center gap-2">
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
+                <Spinner />
                 Saving...
               </span>
             ) : (

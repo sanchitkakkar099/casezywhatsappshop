@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ProductsTable } from "@/components/admin/ProductsTable";
 import { Pagination } from "@/components/shared/Pagination";
+import { Toast, Spinner, TableSkeleton, LoadingOverlay } from "@/components/shared/Toast";
 
 export default function ProductsPage() {
   return (
@@ -116,10 +117,7 @@ function ProductsPageInner() {
           >
             {syncing ? (
               <span className="flex items-center gap-2">
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+                <Spinner />
                 Syncing...
               </span>
             ) : (
@@ -137,17 +135,16 @@ function ProductsPageInner() {
         </div>
       </div>
 
+      {/* Sync overlay */}
+      {syncing && <LoadingOverlay message="Syncing products from Shopify..." />}
+
       {/* Sync result toast */}
       {syncResult && (
-        <div
-          className={`animate-slide-in-right border-l-4 px-4 py-3 text-sm ${
-            syncResult.type === "success"
-              ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-              : "border-red-500 bg-red-50 text-red-700"
-          }`}
-        >
-          {syncResult.message}
-        </div>
+        <Toast
+          type={syncResult.type}
+          message={syncResult.message}
+          onClose={() => setSyncResult(null)}
+        />
       )}
 
       <div>
@@ -167,9 +164,7 @@ function ProductsPageInner() {
       </div>
 
       {loading ? (
-        <div className="flex h-32 items-center justify-center text-gray-400 text-sm">
-          Loading...
-        </div>
+        <TableSkeleton rows={5} cols={4} />
       ) : (
         <>
           <ProductsTable products={products} onRefresh={fetchProducts} />
