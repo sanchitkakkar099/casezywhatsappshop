@@ -7,6 +7,14 @@ import { ProductsTable } from "@/components/admin/ProductsTable";
 import { Pagination } from "@/components/shared/Pagination";
 
 export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div className="flex h-32 items-center justify-center text-gray-400 text-sm">Loading...</div>}>
+      <ProductsPageInner />
+    </Suspense>
+  );
+}
+
+function ProductsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [products, setProducts] = useState([]);

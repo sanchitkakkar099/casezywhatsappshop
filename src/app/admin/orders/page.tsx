@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { OrdersTable } from "@/components/admin/OrdersTable";
 import { Pagination } from "@/components/shared/Pagination";
@@ -21,6 +21,14 @@ const ORDER_STATUSES = [
 ];
 
 export default function OrdersPage() {
+  return (
+    <Suspense fallback={<div className="flex h-32 items-center justify-center text-gray-400 text-sm">Loading...</div>}>
+      <OrdersPageInner />
+    </Suspense>
+  );
+}
+
+function OrdersPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [orders, setOrders] = useState([]);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Pagination } from "@/components/shared/Pagination";
 
@@ -24,6 +24,14 @@ const SEGMENTS = [
 ];
 
 export default function CustomersPage() {
+  return (
+    <Suspense fallback={<div className="flex h-32 items-center justify-center text-gray-400 text-sm">Loading...</div>}>
+      <CustomersPageInner />
+    </Suspense>
+  );
+}
+
+function CustomersPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
