@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { config } from "@/lib/config";
-import { getIntegrationConfig } from "@/lib/config";
+import { config, getIntegrationConfig } from "@/lib/config";
 import { DEFAULT_TEMPLATES } from "@/lib/integration-keys";
 import { loggerService } from "@/services/logger.service";
 
@@ -49,9 +48,9 @@ export async function GET(request: NextRequest) {
 
   // Get ChatMint config
   let apiUrl: string, chatmintApiKey: string, senderNumber: string, templateName: string;
-  try { apiUrl = await getIntegrationConfig("chatmint", "apiUrl"); } catch { apiUrl = config.chatmint.apiUrl; }
-  try { chatmintApiKey = await getIntegrationConfig("chatmint", "apiKey"); } catch { chatmintApiKey = config.chatmint.apiKey; }
-  try { senderNumber = await getIntegrationConfig("chatmint", "senderNumber"); } catch { senderNumber = config.chatmint.senderNumber; }
+  try { apiUrl = await getIntegrationConfig("chatmint", "apiUrl"); } catch { apiUrl = process.env.CHATMINT_API_URL ?? "https://backend.chatmint.in/api"; }
+  try { chatmintApiKey = await getIntegrationConfig("chatmint", "apiKey"); } catch { chatmintApiKey = process.env.CHATMINT_API_KEY ?? ""; }
+  try { senderNumber = await getIntegrationConfig("chatmint", "senderNumber"); } catch { senderNumber = process.env.CHATMINT_SENDER_NUMBER ?? ""; }
   try { templateName = await getIntegrationConfig("chatmint", "tplAbandonedCart"); } catch { templateName = "abandoned_cart"; }
 
   let sent = 0;

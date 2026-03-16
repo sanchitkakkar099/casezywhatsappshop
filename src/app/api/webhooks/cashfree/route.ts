@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { config } from "@/lib/config";
+import { getIntegrationConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import { verifyCashfreeSignature } from "@/lib/validation/webhook";
 import { loggerService } from "@/services/logger.service";
@@ -36,11 +36,12 @@ export async function POST(request: NextRequest) {
   // Verify signature
   let signatureValid = false;
   try {
+    const webhookSecret = await getIntegrationConfig("cashfree", "webhookSecret");
     signatureValid = verifyCashfreeSignature(
       rawBody,
       timestamp,
       signature,
-      config.cashfree.webhookSecret
+      webhookSecret
     );
   } catch {
     signatureValid = false;

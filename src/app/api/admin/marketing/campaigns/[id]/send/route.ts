@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { config } from "@/lib/config";
 import { getIntegrationConfig } from "@/lib/config";
 import { DEFAULT_TEMPLATES } from "@/lib/integration-keys";
 import { loggerService } from "@/services/logger.service";
@@ -53,17 +52,17 @@ export async function POST(
     try {
       apiUrl = await getIntegrationConfig("chatmint", "apiUrl");
     } catch {
-      apiUrl = config.chatmint.apiUrl;
+      apiUrl = process.env.CHATMINT_API_URL ?? "https://backend.chatmint.in/api";
     }
     try {
       apiKey = await getIntegrationConfig("chatmint", "apiKey");
     } catch {
-      apiKey = config.chatmint.apiKey;
+      apiKey = process.env.CHATMINT_API_KEY ?? "";
     }
     try {
       senderNumber = await getIntegrationConfig("chatmint", "senderNumber");
     } catch {
-      senderNumber = config.chatmint.senderNumber;
+      senderNumber = process.env.CHATMINT_SENDER_NUMBER ?? "";
     }
 
     let sentCount = 0;

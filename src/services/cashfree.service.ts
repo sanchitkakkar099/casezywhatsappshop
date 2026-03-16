@@ -1,4 +1,4 @@
-import { config } from "@/lib/config";
+import { getIntegrationConfig } from "@/lib/config";
 import { ExternalServiceError } from "@/lib/errors";
 import type {
   CashfreeCreateLinkRequest,
@@ -6,18 +6,34 @@ import type {
   CashfreeLinkStatusResponse,
 } from "@/types/cashfree";
 
-const headers = () => ({
-  "Content-Type": "application/json",
-  "x-client-id": config.cashfree.appId,
-  "x-client-secret": config.cashfree.secretKey,
-  "x-api-version": "2023-08-01",
-});
+async function getCashfreeConfig() {
+  const appId = await getIntegrationConfig("cashfree", "appId");
+  const secretKey = await getIntegrationConfig("cashfree", "secretKey");
+  const env = await getIntegrationConfig("cashfree", "env").catch(() => "sandbox");
+  const baseUrl =
+    env === "production"
+      ? "https://api.cashfree.com/pg"
+      : "https://sandbox.cashfree.com/pg";
+
+  return {
+    appId,
+    secretKey,
+    env,
+    baseUrl,
+    headers: {
+      "Content-Type": "application/json",
+      "x-client-id": appId,
+      "x-client-secret": secretKey,
+      "x-api-version": "2023-08-01",
+    },
+  };
+}
 
 /**
  * Create a dynamic Cashfree payment link for a checkout.
  */
 export async function createPaymentLink(params: {
-  linkId: string; // internal_order_reference (e.g., ORD-A3F8K2)
+  linkId: string;
   amount: number;
   currency: string;
   purpose: string;
@@ -27,7 +43,8 @@ export async function createPaymentLink(params: {
   returnUrl: string;
   notifyUrl: string;
 }): Promise<CashfreeCreateLinkResponse> {
-  // Link expires in 24 hours
+  const cf = await getCashfreeConfig();
+
   const expiryTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
   const body: CashfreeCreateLinkRequest = {
@@ -54,9 +71,9 @@ export async function createPaymentLink(params: {
     },
   };
 
-  const response = await fetch(`${config.cashfree.baseUrl}/links`, {
+  const response = await fetch(`${cf.baseUrl}/links`, {
     method: "POST",
-    headers: headers(),
+    headers: cf.headers,
     body: JSON.stringify(body),
   });
 
@@ -75,14 +92,15 @@ export async function createPaymentLink(params: {
 
 /**
  * Fetch the status of an existing payment link.
- * Useful for reconciliation / checking expired links.
  */
 export async function getPaymentLinkStatus(
   linkId: string
 ): Promise<CashfreeLinkStatusResponse> {
-  const response = await fetch(`${config.cashfree.baseUrl}/links/${linkId}`, {
+  const cf = await getCashfreeConfig();
+
+  const response = await fetch(`${cf.baseUrl}/links/${linkId}`, {
     method: "GET",
-    headers: headers(),
+    headers: cf.headers,
   });
 
   const data = await response.json();

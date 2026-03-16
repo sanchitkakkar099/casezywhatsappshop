@@ -1,4 +1,3 @@
-import { config } from "@/lib/config";
 import { getIntegrationConfig } from "@/lib/config";
 import { DEFAULT_TEMPLATES } from "@/lib/integration-keys";
 import { loggerService } from "./logger.service";
@@ -26,19 +25,19 @@ async function getChatMintConfig() {
   try {
     apiUrl = await getIntegrationConfig("chatmint", "apiUrl");
   } catch {
-    apiUrl = config.chatmint.apiUrl;
+    apiUrl = process.env.CHATMINT_API_URL ?? "https://backend.chatmint.in/api";
   }
 
   try {
     apiKey = await getIntegrationConfig("chatmint", "apiKey");
   } catch {
-    apiKey = config.chatmint.apiKey;
+    apiKey = process.env.CHATMINT_API_KEY ?? "";
   }
 
   try {
     senderNumber = await getIntegrationConfig("chatmint", "senderNumber");
   } catch {
-    senderNumber = config.chatmint.senderNumber;
+    senderNumber = process.env.CHATMINT_SENDER_NUMBER ?? "";
   }
 
   return { apiUrl, apiKey, senderNumber };

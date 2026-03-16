@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { config } from "@/lib/config";
+import { getIntegrationConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import { verifyShopifyHmac } from "@/lib/validation/webhook";
 import { loggerService } from "@/services/logger.service";
@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
   // Verify HMAC
   let hmacValid = false;
   try {
-    hmacValid = verifyShopifyHmac(rawBody, hmac, config.shopify.webhookSecret);
+    const webhookSecret = await getIntegrationConfig("shopify", "webhookSecret");
+    hmacValid = verifyShopifyHmac(rawBody, hmac, webhookSecret);
   } catch {
     hmacValid = false;
   }

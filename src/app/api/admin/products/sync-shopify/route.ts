@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { config } from "@/lib/config";
+import { getIntegrationConfig } from "@/lib/config";
 import { errorResponse, UnauthorizedError } from "@/lib/errors";
 import { loggerService } from "@/services/logger.service";
 
@@ -33,6 +33,12 @@ export async function POST() {
     const session = await getServerSession(authOptions);
     if (!session) throw new UnauthorizedError();
 
+    // Get Shopify config from DB
+    const storeDomain = await getIntegrationConfig("shopify", "storeDomain");
+    const accessToken = await getIntegrationConfig("shopify", "accessToken");
+    const apiVersion = await getIntegrationConfig("shopify", "apiVersion").catch(() => "2024-01");
+    const shopifyBaseUrl = `https://${storeDomain}/admin/api/${apiVersion}`;
+
     // Fetch all products from Shopify (paginated)
     const allProducts: ShopifyProduct[] = [];
     let pageInfo: string | null = null;
@@ -40,13 +46,13 @@ export async function POST() {
 
     while (hasMore) {
       const fetchUrl: string = pageInfo
-        ? `${config.shopify.baseUrl}/products.json?limit=250&page_info=${pageInfo}`
-        : `${config.shopify.baseUrl}/products.json?limit=250&status=active`;
+        ? `${shopifyBaseUrl}/products.json?limit=250&page_info=${pageInfo}`
+        : `${shopifyBaseUrl}/products.json?limit=250&status=active`;
 
       const response: Response = await fetch(fetchUrl, {
         headers: {
           "Content-Type": "application/json",
-          "X-Shopify-Access-Token": config.shopify.accessToken,
+          "X-Shopify-Access-Token": accessToken,
         },
       });
 

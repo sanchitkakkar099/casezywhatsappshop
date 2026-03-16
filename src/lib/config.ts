@@ -20,42 +20,11 @@ export const config = {
   // App
   appUrl: optional("APP_URL", "http://localhost:3000"),
   nodeEnv: optional("NODE_ENV", "development"),
-  whatsappIntakeApiKey: required("WHATSAPP_INTAKE_API_KEY"),
+  whatsappIntakeApiKey: optional("WHATSAPP_INTAKE_API_KEY", ""),
 
   // NextAuth
   nextAuthUrl: optional("NEXTAUTH_URL", "http://localhost:3000"),
   nextAuthSecret: required("NEXTAUTH_SECRET"),
-
-  // Cashfree
-  cashfree: {
-    appId: required("CASHFREE_APP_ID"),
-    secretKey: required("CASHFREE_SECRET_KEY"),
-    webhookSecret: required("CASHFREE_WEBHOOK_SECRET"),
-    env: optional("CASHFREE_ENV", "sandbox") as "sandbox" | "production",
-    get baseUrl() {
-      return this.env === "production"
-        ? "https://api.cashfree.com/pg"
-        : "https://sandbox.cashfree.com/pg";
-    },
-  },
-
-  // Shopify
-  shopify: {
-    storeDomain: required("SHOPIFY_STORE_DOMAIN"),
-    accessToken: required("SHOPIFY_ACCESS_TOKEN"),
-    webhookSecret: required("SHOPIFY_WEBHOOK_SECRET"),
-    apiVersion: optional("SHOPIFY_API_VERSION", "2024-01"),
-    get baseUrl() {
-      return `https://${this.storeDomain}/admin/api/${this.apiVersion}`;
-    },
-  },
-
-  // ChatMint (WhatsApp)
-  chatmint: {
-    apiUrl: optional("CHATMINT_API_URL", "https://backend.chatmint.in/api"),
-    apiKey: required("CHATMINT_API_KEY"),
-    senderNumber: required("CHATMINT_SENDER_NUMBER"),
-  },
 } as const;
 
 // ============================================================

@@ -1,4 +1,4 @@
-import { config } from "@/lib/config";
+import { getIntegrationConfig } from "@/lib/config";
 import { ExternalServiceError } from "@/lib/errors";
 import type {
   ShopifyCreateOrderRequest,
@@ -44,10 +44,25 @@ function toShopifyAddress(
   };
 }
 
-const shopifyHeaders = () => ({
-  "Content-Type": "application/json",
-  "X-Shopify-Access-Token": config.shopify.accessToken,
-});
+async function getShopifyConfig() {
+  const storeDomain = await getIntegrationConfig("shopify", "storeDomain");
+  const accessToken = await getIntegrationConfig("shopify", "accessToken");
+  const apiVersion = await getIntegrationConfig("shopify", "apiVersion").catch(
+    () => "2024-01"
+  );
+  const baseUrl = `https://${storeDomain}/admin/api/${apiVersion}`;
+
+  return {
+    storeDomain,
+    accessToken,
+    apiVersion,
+    baseUrl,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Shopify-Access-Token": accessToken,
+    },
+  };
+}
 
 /**
  * Create a paid order in Shopify from a completed checkout.
@@ -62,6 +77,7 @@ export async function createShopifyOrder(
     );
   }
 
+  const shopify = await getShopifyConfig();
   const { first, last } = splitName(checkout.customer.fullName);
   const shippingAddr = checkout.shippingAddress as unknown as AddressData;
   const billingAddr = checkout.billingAddress as unknown as AddressData;
@@ -109,9 +125,9 @@ export async function createShopifyOrder(
     },
   };
 
-  const response = await fetch(`${config.shopify.baseUrl}/orders.json`, {
+  const response = await fetch(`${shopify.baseUrl}/orders.json`, {
     method: "POST",
-    headers: shopifyHeaders(),
+    headers: shopify.headers,
     body: JSON.stringify(body),
   });
 
@@ -132,11 +148,13 @@ export async function createShopifyOrder(
  * Get an order from Shopify by ID (for reconciliation).
  */
 export async function getShopifyOrder(orderId: string) {
+  const shopify = await getShopifyConfig();
+
   const response = await fetch(
-    `${config.shopify.baseUrl}/orders/${orderId}.json`,
+    `${shopify.baseUrl}/orders/${orderId}.json`,
     {
       method: "GET",
-      headers: shopifyHeaders(),
+      headers: shopify.headers,
     }
   );
 
