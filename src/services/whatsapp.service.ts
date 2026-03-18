@@ -15,17 +15,20 @@ async function getTemplateName(templateKey: string): Promise<string> {
 }
 
 /**
- * Get ChatMint API config, preferring DB settings with env fallback.
+ * Get ChatMint / Meta Cloud API config.
+ * - apiKey = Meta WhatsApp Access Token
+ * - senderNumber = Meta Phone Number ID (not the phone number itself)
+ * - apiUrl = Meta Graph API base URL
  */
 async function getChatMintConfig() {
   let apiUrl: string;
   let apiKey: string;
-  let senderNumber: string;
+  let phoneNumberId: string;
 
   try {
     apiUrl = await getIntegrationConfig("chatmint", "apiUrl");
   } catch {
-    apiUrl = process.env.CHATMINT_API_URL ?? "https://backend.chatmint.in/api";
+    apiUrl = process.env.CHATMINT_API_URL ?? "https://graph.facebook.com/v21.0";
   }
 
   try {
@@ -35,16 +38,16 @@ async function getChatMintConfig() {
   }
 
   try {
-    senderNumber = await getIntegrationConfig("chatmint", "senderNumber");
+    phoneNumberId = await getIntegrationConfig("chatmint", "senderNumber");
   } catch {
-    senderNumber = process.env.CHATMINT_SENDER_NUMBER ?? "";
+    phoneNumberId = process.env.CHATMINT_SENDER_NUMBER ?? "";
   }
 
-  return { apiUrl, apiKey, senderNumber };
+  return { apiUrl, apiKey, phoneNumberId };
 }
 
 /**
- * Send a template message via ChatMint API.
+ * Send a template message via Meta WhatsApp Cloud API.
  */
 async function sendChatMintMessage(
   phone: string,
@@ -54,15 +57,34 @@ async function sendChatMintMessage(
 ): Promise<SendResult> {
   const chatmint = await getChatMintConfig();
 
+  // Clean phone: ensure format like 919876543210 (no + prefix)
+  const cleanPhone = phone.replace(/^\+/, "").replace(/\D/g, "");
+
+  // Build Meta Cloud API payload
   const payload = {
-    sender: chatmint.senderNumber,
-    recipient: phone,
-    template_name: templateName,
-    template_params: templateParams,
+    messaging_product: "whatsapp",
+    to: cleanPhone,
+    type: "template",
+    template: {
+      name: templateName,
+      language: { code: "en" },
+      components: [
+        {
+          type: "body",
+          parameters: templateParams.map((text) => ({
+            type: "text",
+            text,
+          })),
+        },
+      ],
+    },
   };
 
+  // Meta Cloud API endpoint: POST /{phone_number_id}/messages
+  const url = `${chatmint.apiUrl}/${chatmint.phoneNumberId}/messages`;
+
   try {
-    const response = await fetch(`${chatmint.apiUrl}/send-template`, {
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -73,14 +95,20 @@ async function sendChatMintMessage(
 
     const data = await response.json();
 
+    const success = response.ok;
+    const messageId = data.messages?.[0]?.id ?? data.message_id ?? data.id;
+    const errorMsg = success
+      ? undefined
+      : data.error?.message ?? data.message ?? JSON.stringify(data);
+
     const result: SendResult = {
-      success: response.ok,
-      messageId: data.message_id ?? data.id,
-      error: response.ok ? undefined : (data.message ?? data.error ?? "Unknown error"),
+      success,
+      messageId,
+      error: errorMsg,
     };
 
     await loggerService.logWhatsappOutbound({
-      recipient: phone,
+      recipient: cleanPhone,
       messageType: templateName,
       payload: { request: payload, response: data },
       status: result.success ? "sent" : "failed",
@@ -90,10 +118,11 @@ async function sendChatMintMessage(
 
     return result;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Network error";
+    const errorMessage =
+      error instanceof Error ? error.message : "Network error";
 
     await loggerService.logWhatsappOutbound({
-      recipient: phone,
+      recipient: cleanPhone,
       messageType: templateName,
       payload: { request: payload, error: errorMessage },
       status: "failed",
@@ -105,25 +134,24 @@ async function sendChatMintMessage(
   }
 }
 
-export const whatsappService: WhatsAppService & {
-  sendPaymentLink: WhatsAppService["sendPaymentLink"] & { checkoutId?: string };
-} = {
+export const whatsappService: WhatsAppService = {
   async sendPaymentLink({ phone, customerName, productName, linkUrl, amount }) {
     const templateName = await getTemplateName("tplPaymentLink");
-    return sendChatMintMessage(
-      phone,
-      templateName,
-      [customerName, productName, amount, linkUrl]
-    );
+    return sendChatMintMessage(phone, templateName, [
+      customerName,
+      productName,
+      amount,
+      linkUrl,
+    ]);
   },
 
   async sendPaymentConfirmation({ phone, customerName, orderRef, amount }) {
     const templateName = await getTemplateName("tplPaymentConfirmation");
-    return sendChatMintMessage(
-      phone,
-      templateName,
-      [customerName, amount, orderRef]
-    );
+    return sendChatMintMessage(phone, templateName, [
+      customerName,
+      amount,
+      orderRef,
+    ]);
   },
 
   async sendTrackingInfo({
@@ -135,11 +163,13 @@ export const whatsappService: WhatsAppService & {
     trackingUrl,
   }) {
     const templateName = await getTemplateName("tplTrackingInfo");
-    return sendChatMintMessage(
-      phone,
-      templateName,
-      [customerName, orderRef, courierName, trackingNumber, trackingUrl]
-    );
+    return sendChatMintMessage(phone, templateName, [
+      customerName,
+      orderRef,
+      courierName,
+      trackingNumber,
+      trackingUrl,
+    ]);
   },
 };
 
@@ -154,53 +184,11 @@ export async function sendPaymentLinkMessage(
   amount: string,
   checkoutId: string
 ): Promise<SendResult> {
-  const chatmint = await getChatMintConfig();
   const templateName = await getTemplateName("tplPaymentLink");
-
-  const payload = {
-    sender: chatmint.senderNumber,
-    recipient: phone,
-    template_name: templateName,
-    template_params: [customerName, productName, amount, linkUrl],
-  };
-
-  try {
-    const response = await fetch(`${chatmint.apiUrl}/send-template`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${chatmint.apiKey}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json();
-    const success = response.ok;
-
-    await loggerService.logWhatsappOutbound({
-      recipient: phone,
-      messageType: templateName,
-      payload: { request: payload, response: data },
-      status: success ? "sent" : "failed",
-      error: success ? undefined : (data.message ?? "Unknown error"),
-      checkoutId,
-    });
-
-    return {
-      success,
-      messageId: data.message_id ?? data.id,
-      error: success ? undefined : (data.message ?? "Unknown error"),
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Network error";
-    await loggerService.logWhatsappOutbound({
-      recipient: phone,
-      messageType: templateName,
-      payload: { request: payload, error: errorMessage },
-      status: "failed",
-      error: errorMessage,
-      checkoutId,
-    });
-    return { success: false, error: errorMessage };
-  }
+  return sendChatMintMessage(
+    phone,
+    templateName,
+    [customerName, productName, amount, linkUrl],
+    checkoutId
+  );
 }
