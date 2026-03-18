@@ -92,7 +92,8 @@ export async function createCheckoutFromIntake(input: CheckoutIntakeInput) {
       notifyUrl: `${config.appUrl}/api/webhooks/cashfree`,
     });
 
-    paymentLinkUrl = cashfreeLink.link_url;
+    // Use our own payment page URL (which redirects to Cashfree checkout)
+    paymentLinkUrl = `${config.appUrl}/pay/${orderRef}`;
 
     // 5. Update checkout with Cashfree link details
     await db.checkout.update({
@@ -100,7 +101,7 @@ export async function createCheckoutFromIntake(input: CheckoutIntakeInput) {
       data: {
         cashfreeOrderId: orderRef,
         cashfreePaymentLinkId: String(cashfreeLink.cf_link_id),
-        cashfreePaymentLinkUrl: cashfreeLink.link_url,
+        cashfreePaymentLinkUrl: paymentLinkUrl,
       },
     });
   } catch (error) {
@@ -133,7 +134,7 @@ export async function createCheckoutFromIntake(input: CheckoutIntakeInput) {
     customer.fullName,
     product.name,
     paymentLinkUrl,
-    `₹${totalAmount.toFixed(2)}`,
+    totalAmount.toFixed(2),
     checkout.id
   );
 
