@@ -1,11 +1,26 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 function ThankYouContent() {
   const searchParams = useSearchParams();
   const orderRef = searchParams.get("ref") ?? "";
+  const [countdown, setCountdown] = useState(5);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          window.location.href = "https://casezy.in";
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white flex items-center justify-center p-4">
@@ -39,7 +54,7 @@ function ThankYouContent() {
         </div>
 
         <p className="text-xs text-gray-400">
-          You can close this page. All updates will be sent to your WhatsApp.
+          Redirecting to casezy.in in {countdown} seconds...
         </p>
       </div>
     </div>
