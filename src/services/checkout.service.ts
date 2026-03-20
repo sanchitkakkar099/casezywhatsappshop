@@ -92,8 +92,8 @@ export async function createCheckoutFromIntake(input: CheckoutIntakeInput) {
       notifyUrl: `${config.appUrl}/api/webhooks/cashfree`,
     });
 
-    // Use our own payment page URL (which redirects to Cashfree checkout)
-    paymentLinkUrl = `${config.appUrl}/pay/${orderRef}`;
+    // Use direct Cashfree payment link URL
+    paymentLinkUrl = cashfreeLink.link_url;
 
     // 5. Update checkout with Cashfree link details
     await db.checkout.update({

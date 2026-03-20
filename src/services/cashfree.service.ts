@@ -24,19 +24,9 @@ async function getCashfreeConfig() {
   };
 }
 
-export interface CashfreeOrderResponse {
-  cf_order_id: string;
-  order_id: string;
-  order_status: string;
-  payment_session_id: string;
-  order_amount: number;
-  order_currency: string;
-  payment_url: string;
-}
-
 /**
- * Create a Cashfree PG order and return the payment URL.
- * Uses the Orders API (/pg/orders) instead of Payment Links API.
+ * Create a Cashfree Payment Link and return the shareable URL.
+ * Uses the Payment Links API (/pg/links).
  */
 export async function createPaymentLink(params: {
   linkId: string;
@@ -55,27 +45,30 @@ export async function createPaymentLink(params: {
   const cleanPhone = params.customerPhone.replace(/^\+?91/, "").replace(/\D/g, "").slice(-10);
 
   const body = {
-    order_id: params.linkId,
-    order_amount: params.amount,
-    order_currency: params.currency,
-    order_note: params.purpose,
+    link_id: params.linkId,
+    link_amount: params.amount,
+    link_currency: params.currency,
+    link_purpose: params.purpose,
     customer_details: {
-      customer_id: `cust_${cleanPhone}`,
       customer_name: params.customerName,
       customer_email: params.customerEmail,
       customer_phone: cleanPhone,
     },
-    order_meta: {
+    link_notify: {
+      send_sms: false,
+      send_email: false,
+    },
+    link_meta: {
       return_url: params.returnUrl,
       notify_url: params.notifyUrl,
     },
-    order_tags: {
+    link_notes: {
       internal_ref: params.linkId,
       source: "whatsapp",
     },
   };
 
-  const response = await fetch(`${cf.baseUrl}/orders`, {
+  const response = await fetch(`${cf.baseUrl}/links`, {
     method: "POST",
     headers: cf.headers,
     body: JSON.stringify(body),
@@ -86,30 +79,25 @@ export async function createPaymentLink(params: {
   if (!response.ok) {
     throw new ExternalServiceError(
       "Cashfree",
-      `Failed to create payment order: ${data.message ?? JSON.stringify(data)}`,
+      `Failed to create payment link: ${data.message ?? JSON.stringify(data)}`,
       data
     );
   }
 
-  // Build the payment URL from the payment session ID
-  const paymentUrl = cf.env === "production"
-    ? `https://payments.cashfree.com/order/#${data.payment_session_id}`
-    : `https://sandbox.cashfree.com/pg/orders/pay/${data.payment_session_id}`;
-
   return {
-    cf_link_id: data.cf_order_id,
-    link_url: paymentUrl,
-    link_id: data.order_id,
+    cf_link_id: data.cf_link_id,
+    link_url: data.link_url,
+    link_id: data.link_id,
   };
 }
 
 /**
- * Fetch the status of an existing Cashfree order.
+ * Fetch the status of an existing Cashfree payment link.
  */
-export async function getPaymentLinkStatus(orderId: string) {
+export async function getPaymentLinkStatus(linkId: string) {
   const cf = await getCashfreeConfig();
 
-  const response = await fetch(`${cf.baseUrl}/orders/${orderId}`, {
+  const response = await fetch(`${cf.baseUrl}/links/${linkId}`, {
     method: "GET",
     headers: cf.headers,
   });
@@ -119,7 +107,7 @@ export async function getPaymentLinkStatus(orderId: string) {
   if (!response.ok) {
     throw new ExternalServiceError(
       "Cashfree",
-      `Failed to fetch order status: ${data.message ?? JSON.stringify(data)}`,
+      `Failed to fetch link status: ${data.message ?? JSON.stringify(data)}`,
       data
     );
   }
