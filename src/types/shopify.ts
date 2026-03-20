@@ -21,12 +21,16 @@ export interface ShopifyLineItem {
 export interface ShopifyCreateOrderRequest {
   order: {
     line_items: ShopifyLineItem[];
-    customer: {
-      first_name: string;
-      last_name: string;
-      email: string;
-      phone?: string;
-    };
+    customer:
+      | { id: number }
+      | {
+          first_name: string;
+          last_name: string;
+          email: string;
+          phone?: string;
+        };
+    email?: string;
+    phone?: string;
     shipping_address: ShopifyAddress;
     billing_address: ShopifyAddress;
     financial_status: "paid";
