@@ -65,50 +65,6 @@ async function getShopifyConfig() {
 }
 
 /**
- * Search for an existing Shopify customer by email or phone.
- * Returns the customer ID if found, null otherwise.
- */
-async function findShopifyCustomer(
-  shopify: { baseUrl: string; headers: Record<string, string> },
-  email: string,
-  phone: string
-): Promise<number | null> {
-  // Search by email first
-  try {
-    const res = await fetch(
-      `${shopify.baseUrl}/customers/search.json?query=email:${encodeURIComponent(email)}&fields=id`,
-      { headers: shopify.headers }
-    );
-    if (res.ok) {
-      const data = await res.json();
-      if (data.customers?.length > 0) {
-        return data.customers[0].id;
-      }
-    }
-  } catch {
-    // Fall through
-  }
-
-  // Search by phone
-  try {
-    const res = await fetch(
-      `${shopify.baseUrl}/customers/search.json?query=phone:${encodeURIComponent(phone)}&fields=id`,
-      { headers: shopify.headers }
-    );
-    if (res.ok) {
-      const data = await res.json();
-      if (data.customers?.length > 0) {
-        return data.customers[0].id;
-      }
-    }
-  } catch {
-    // Fall through
-  }
-
-  return null;
-}
-
-/**
  * Create a paid order in Shopify from a completed checkout.
  */
 export async function createShopifyOrder(
@@ -126,22 +82,13 @@ export async function createShopifyOrder(
   const shippingAddr = checkout.shippingAddress as unknown as AddressData;
   const billingAddr = checkout.billingAddress as unknown as AddressData;
 
-  // Look up existing Shopify customer to avoid "phone already taken" error
-  const existingCustomerId = await findShopifyCustomer(
-    shopify,
-    checkout.customer.email,
-    checkout.customer.phone
-  );
-
-  // Build customer object: use ID if existing, otherwise create new
-  const customerObj = existingCustomerId
-    ? { id: existingCustomerId }
-    : {
-        first_name: first,
-        last_name: last,
-        email: checkout.customer.email,
-        phone: checkout.customer.phone,
-      };
+  // Use email only on customer object to avoid "phone already taken" error.
+  // Phone is passed on shipping/billing address instead.
+  const customerObj = {
+    first_name: first,
+    last_name: last,
+    email: checkout.customer.email,
+  };
 
   const body: ShopifyCreateOrderRequest = {
     order: {
