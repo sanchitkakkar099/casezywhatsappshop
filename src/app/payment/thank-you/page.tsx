@@ -56,6 +56,10 @@ function ThankYouContent() {
         <p className="text-xs text-gray-400">
           Redirecting to casezy.in in {countdown} seconds...
         </p>
+
+        <p className="text-[10px] text-gray-300 mt-8">
+          Powered by Xava Web Services Pvt Ltd
+        </p>
       </div>
     </div>
   );
