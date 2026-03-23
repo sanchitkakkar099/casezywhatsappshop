@@ -57,9 +57,14 @@ function ThankYouContent() {
           Redirecting to casezy.in in {countdown} seconds...
         </p>
 
-        <p className="text-[10px] text-gray-300 mt-8">
-          Powered by Xava Web Services Pvt Ltd
-        </p>
+        <div className="mt-8 space-y-0.5">
+          <p className="text-[10px] text-gray-400">
+            Product Extension of Chatmint
+          </p>
+          <p className="text-[10px] text-gray-300">
+            Powered by Xava Web Services Pvt Ltd
+          </p>
+        </div>
       </div>
     </div>
   );
