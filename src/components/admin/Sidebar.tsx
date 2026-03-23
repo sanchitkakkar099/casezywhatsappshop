@@ -111,22 +111,10 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
         </button>
       </div>
 
-      {/* Powered by ChatMint */}
-      <div className="border-t border-white/5 px-5 py-3">
-        <a
-          href="https://chatmint.in"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 transition-opacity hover:opacity-80"
-        >
-          <span className="text-xs text-gray-400">Powered by Chatmint</span>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="https://cloudmediastorage.s3.ap-south-1.amazonaws.com/white-label/logo/chatmint.in/30c1e327-f8ac-4965-8309-a0664dbf054b-Green%20Minimalist%20Chat%20Logo%20Design%20(7).png"
-            alt="ChatMint"
-            className="h-5"
-          />
-        </a>
+      {/* Branding */}
+      <div className="border-t border-white/5 px-5 py-3 space-y-0.5">
+        <p className="text-[10px] text-gray-500">Product Extension of Chatmint</p>
+        <p className="text-[10px] text-gray-600">Powered by Xava Web Services Pvt Ltd</p>
       </div>
     </>
   );
