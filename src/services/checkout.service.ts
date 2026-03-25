@@ -35,15 +35,16 @@ export async function createCheckoutFromIntake(input: CheckoutIntakeInput) {
   }
 
   // 2. Upsert customer by phone (phone is the WhatsApp identifier)
+  const customerEmail = input.email || `${input.phone.replace(/\D/g, "")}@whatsapp.customer`;
   const customer = await db.customer.upsert({
     where: { phone: input.phone },
     update: {
       fullName: input.full_name,
-      email: input.email,
+      ...(input.email ? { email: input.email } : {}),
     },
     create: {
       fullName: input.full_name,
-      email: input.email,
+      email: customerEmail,
       phone: input.phone,
     },
   });
@@ -67,7 +68,7 @@ export async function createCheckoutFromIntake(input: CheckoutIntakeInput) {
       source: "whatsapp",
       whatsappContactId: input.whatsapp_contact_id,
       shippingAddress: input.shipping_address,
-      billingAddress: input.billing_address,
+      billingAddress: input.billing_address ?? input.shipping_address,
       paymentStatus: "PENDING",
       orderStatus: "CHECKOUT_CREATED",
     },

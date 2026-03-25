@@ -29,9 +29,11 @@ export async function POST(request: NextRequest) {
     // Validate payload
     const parsed = checkoutIntakeSchema.safeParse(rawBody);
     if (!parsed.success) {
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      console.error("Checkout intake validation failed:", JSON.stringify({ rawBody, fieldErrors }, null, 2));
       throw new ValidationError(
         "Invalid checkout payload",
-        parsed.error.flatten().fieldErrors
+        fieldErrors
       );
     }
 

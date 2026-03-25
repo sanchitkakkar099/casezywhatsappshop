@@ -75,7 +75,7 @@ async function sendChatMintMessage(
     phoneNoId: chatmint.phoneNumberId,
     type: "template",
     name: templateName,
-    language: "en",
+    language: "en_US",
     bodyParams: templateParams,
   };
 
