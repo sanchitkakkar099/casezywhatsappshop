@@ -68,7 +68,11 @@ async function sendChatMintMessage(
   const chatmint = await getChatMintConfig();
 
   // Clean phone: ensure format like 919876543210 (no + prefix)
-  const cleanPhone = phone.replace(/^\+/, "").replace(/\D/g, "");
+  let cleanPhone = phone.replace(/^\+/, "").replace(/\D/g, "");
+  // Prepend India country code if 10-digit number (no country code)
+  if (cleanPhone.length === 10) {
+    cleanPhone = "91" + cleanPhone;
+  }
 
   const payload = {
     to: cleanPhone,
@@ -144,7 +148,10 @@ async function sendTextMessage(
   checkoutId?: string
 ): Promise<SendResult> {
   const chatmint = await getChatMintConfig();
-  const cleanPhone = phone.replace(/^\+/, "").replace(/\D/g, "");
+  let cleanPhone = phone.replace(/^\+/, "").replace(/\D/g, "");
+  if (cleanPhone.length === 10) {
+    cleanPhone = "91" + cleanPhone;
+  }
 
   const payload = {
     to: cleanPhone,
