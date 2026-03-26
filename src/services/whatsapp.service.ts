@@ -63,7 +63,8 @@ async function sendChatMintMessage(
   phone: string,
   templateName: string,
   templateParams: string[],
-  checkoutId?: string
+  checkoutId?: string,
+  language: string = "en"
 ): Promise<SendResult> {
   const chatmint = await getChatMintConfig();
 
@@ -79,7 +80,7 @@ async function sendChatMintMessage(
     phoneNoId: chatmint.phoneNumberId,
     type: "template",
     name: templateName,
-    language: "en",
+    language,
     bodyParams: templateParams,
   };
 
@@ -249,11 +250,13 @@ export async function sendPaymentLinkMessage(
   checkoutId: string
 ): Promise<SendResult> {
   const templateName = await getTemplateName("tplPaymentLink");
+  // Payment link template is a Marketing template — requires en_US language code
   return sendChatMintMessage(
     phone,
     templateName,
     [customerName, productName, amount, linkUrl],
-    checkoutId
+    checkoutId,
+    "en_US"
   );
 }
 

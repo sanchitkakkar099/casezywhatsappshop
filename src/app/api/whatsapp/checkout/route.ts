@@ -16,9 +16,13 @@ import { loggerService } from "@/services/logger.service";
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeIntakePayload(body: Record<string, any>): Record<string, any> {
-  // If shipping_address is already a nested object, return as-is
+  // If shipping_address is already a nested object, normalize field names and return
   if (body.shipping_address && typeof body.shipping_address === "object") {
-    return body;
+    return {
+      ...body,
+      phone: String(body.phone || ""),
+      whatsapp_contact_id: body.whatsapp_contact_id || body.whatsappcontactid || body.contact_id || "",
+    };
   }
 
   // Build address from common flat field names ChatMint might use
@@ -44,7 +48,7 @@ function normalizeIntakePayload(body: Record<string, any>): Record<string, any> 
     phone: String(body.phone || body.mobile || body.customer_phone || body.whatsapp || ""),
     product_id: body.product_id || "",
     quantity: body.quantity || 1,
-    whatsapp_contact_id: body.whatsapp_contact_id || body.contact_id || "",
+    whatsapp_contact_id: body.whatsapp_contact_id || body.whatsappcontactid || body.contact_id || "",
     shipping_address,
   };
 }

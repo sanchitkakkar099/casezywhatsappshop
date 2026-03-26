@@ -21,12 +21,13 @@ import { Decimal } from "@prisma/client/runtime/library";
  * 7. Update order status
  */
 export async function createCheckoutFromIntake(input: CheckoutIntakeInput) {
-  // 1. Find product by ID or slug
+  // 1. Find product by ID, slug, or Shopify product ID
   const product = await db.product.findFirst({
     where: {
       OR: [
         { id: input.product_id },
         { slug: input.product_id },
+        { shopifyProductId: input.product_id },
       ],
     },
   });
