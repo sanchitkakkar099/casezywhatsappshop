@@ -250,13 +250,12 @@ export async function sendPaymentLinkMessage(
   checkoutId: string
 ): Promise<SendResult> {
   const templateName = await getTemplateName("tplPaymentLink");
-  // Payment link template is a Marketing template — requires en_US language code
   return sendChatMintMessage(
     phone,
     templateName,
     [customerName, productName, amount, linkUrl],
     checkoutId,
-    "en_US"
+    "en"
   );
 }
 
