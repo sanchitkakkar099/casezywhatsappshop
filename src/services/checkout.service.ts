@@ -22,7 +22,7 @@ import { Decimal } from "@prisma/client/runtime/library";
  */
 export async function createCheckoutFromIntake(input: CheckoutIntakeInput) {
   // 1. Find product by ID, slug, Shopify product ID, or name (partial, case-insensitive)
-  const product = await db.product.findFirst({
+  let product = await db.product.findFirst({
     where: {
       active: true,
       OR: [
@@ -34,6 +34,25 @@ export async function createCheckoutFromIntake(input: CheckoutIntakeInput) {
       ],
     },
   });
+
+  // Fallback: word-based matching (e.g. "Wooden Door Chime" → matches "Japanese Chime Wood Door Bell")
+  if (!product) {
+    const words = input.product_id.split(/\s+/).filter((w) => w.length >= 3);
+    if (words.length > 0) {
+      const candidates = await db.product.findMany({ where: { active: true } });
+      let bestMatch: typeof candidates[0] | null = null;
+      let bestScore = 0;
+      for (const candidate of candidates) {
+        const nameLower = candidate.name.toLowerCase();
+        const score = words.filter((w) => nameLower.includes(w.toLowerCase())).length;
+        if (score > bestScore && score >= Math.ceil(words.length / 2)) {
+          bestScore = score;
+          bestMatch = candidate;
+        }
+      }
+      product = bestMatch;
+    }
+  }
 
   if (!product) {
     throw new NotFoundError("Product", input.product_id);
