@@ -146,15 +146,28 @@ export async function processShopifySyncJob(jobId: string) {
 
 /**
  * Process all pending sync jobs that are due for retry.
+ * Also recovers jobs stuck in PROCESSING (serverless function killed mid-execution).
  * Called from a cron/scheduled endpoint.
  */
 export async function processPendingSyncJobs() {
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+
   const pendingJobs = await db.shopifySyncJob.findMany({
     where: {
-      status: "PENDING",
       OR: [
-        { nextRetryAt: null },
-        { nextRetryAt: { lte: new Date() } },
+        // Normal pending jobs that are due
+        {
+          status: "PENDING",
+          OR: [
+            { nextRetryAt: null },
+            { nextRetryAt: { lte: new Date() } },
+          ],
+        },
+        // Stuck PROCESSING jobs — serverless function was killed mid-execution
+        {
+          status: "PROCESSING",
+          updatedAt: { lte: tenMinutesAgo },
+        },
       ],
     },
     take: 10,
